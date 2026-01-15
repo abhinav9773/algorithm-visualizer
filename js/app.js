@@ -1,78 +1,82 @@
+// js/app.js
+
 document.addEventListener("DOMContentLoaded", () => {
   const algorithmSelect = document.getElementById("algorithmSelect");
-  const depthInput = document.getElementById("depthInput");
+  const inputBox = document.getElementById("inputBox");
   const generateBtn = document.getElementById("generateBtn");
-  const prevStepBtn = document.getElementById("prevStepBtn");
-  const nextStepBtn = document.getElementById("nextStepBtn");
+  const prevBtn = document.getElementById("prevStepBtn");
+  const nextBtn = document.getElementById("nextStepBtn");
   const resetBtn = document.getElementById("resetBtn");
-  const exportPngBtn = document.getElementById("exportPngBtn");
-  const exportPdfBtn = document.getElementById("exportPdfBtn");
-  const svgElem = document.getElementById("treeSvg");
+  const treeSvg = document.getElementById("treeSvg");
   const complexityBox = document.getElementById("complexityBox");
 
-  function updateComplexity() {
-    const algo = algorithmSelect.value;
-    if (algo === "karatsuba") {
-      complexityBox.innerHTML = `
-                <h3>Karatsuba Multiplication</h3>
-                <p>Recurrence: T(n) = 3T(n/2) + O(n)</p>
-                <p>Time Complexity: <strong>O(n<sup>log<sub>2</sub> 3</sup>) ≈ O(n<sup>1.585</sup>)</strong></p>
-                <p>Idea: split numbers into halves, do 3 recursive multiplications instead of 4 (classical).</p>
-            `;
-    } else {
-      complexityBox.innerHTML = `
-                <h3>Max Subarray (Divide &amp; Conquer)</h3>
-                <p>Recurrence: T(n) = 2T(n/2) + O(n)</p>
-                <p>Time Complexity: <strong>O(n log n)</strong></p>
-                <p>Each step: max(left, right, cross). Cross is computed linearly, not further divided.</p>
-            `;
-    }
-  }
-
-  function generateTree() {
-    const depth = Math.max(
-      1,
-      Math.min(8, parseInt(depthInput.value || "1", 10))
-    );
-    depthInput.value = depth.toString();
-
-    let tree;
+  function renderInput() {
     if (algorithmSelect.value === "karatsuba") {
-      tree = buildKaratsubaTreeFromInput(depth);
+      inputBox.innerHTML = `
+        <label>Enter numbers:</label>
+        <input id="xInput" type="number" placeholder="X" />
+        <input id="yInput" type="number" placeholder="Y" />
+      `;
     } else {
-      tree = buildMaxSubarrayTreeFromInput(depth);
+      inputBox.innerHTML = `
+        <label>Enter array:</label>
+        <input id="arrayInput" type="text"
+          placeholder="-2,1,-3,4,-1,2,1,-5,4" />
+      `;
     }
-
-    renderTree(tree, svgElem);
   }
 
-  generateBtn.addEventListener("click", generateTree);
-  algorithmSelect.addEventListener("change", () => {
-    updateComplexity();
-    generateTree();
+  algorithmSelect.addEventListener("change", renderInput);
+  renderInput();
+
+  generateBtn.addEventListener("click", () => {
+    if (algorithmSelect.value === "karatsuba") {
+      const x = parseInt(document.getElementById("xInput").value);
+      const y = parseInt(document.getElementById("yInput").value);
+
+      if (isNaN(x) || isNaN(y)) {
+        alert("Please enter valid numbers");
+        return;
+      }
+
+      const tree = buildKaratsubaTreeFromInput(x, y);
+      renderTree(tree, treeSvg);
+
+      complexityBox.innerHTML = `
+        <h3>Karatsuba Multiplication</h3>
+        <p><strong>Input:</strong> ${x} × ${y}</p>
+        <p><strong>Final Answer:</strong> ${tree.finalResult}</p>
+        <p>Time: O(n<sup>log₂3</sup>)</p>
+      `;
+    } else {
+      const arr = document
+        .getElementById("arrayInput")
+        .value.split(",")
+        .map(Number);
+
+      if (arr.some(isNaN)) {
+        alert("Invalid array input");
+        return;
+      }
+
+      const tree = buildMaxSubarrayTreeFromInput(arr);
+      renderTree(tree, treeSvg);
+
+      const { sum, l, r } = tree.finalResult;
+      const subarray = arr.slice(l, r + 1);
+
+      complexityBox.innerHTML = `
+        <h3>Max Subarray (Divide & Conquer)</h3>
+        <p><strong>Array:</strong> [${arr.join(", ")}]</p>
+        <p><strong>Maximum Sum:</strong> ${sum}</p>
+        <p><strong>Subarray:</strong> [${subarray.join(", ")}]</p>
+        <p><strong>Indices:</strong> ${l} to ${r}</p>
+        <p>Time: O(n log n)</p>
+      `;
+    }
   });
 
-  prevStepBtn.addEventListener("click", () => {
-    updateStep(svgElem, currentStepIndex - 1);
-  });
-
-  nextStepBtn.addEventListener("click", () => {
-    updateStep(svgElem, currentStepIndex + 1);
-  });
-
-  resetBtn.addEventListener("click", () => {
-    generateTree();
-  });
-
-  exportPngBtn.addEventListener("click", exportPng);
-  exportPdfBtn.addEventListener("click", exportPdf);
-
-  // initial
-  updateComplexity();
-  generateTree();
-
-  // Optional: resize handling
-  window.addEventListener("resize", () => {
-    if (currentTree) renderTree(currentTree, svgElem);
-  });
+  prevBtn.onclick = () => updateStep(treeSvg, currentStepIndex - 1);
+  nextBtn.onclick = () => updateStep(treeSvg, currentStepIndex + 1);
+  resetBtn.onclick = () => updateStep(treeSvg, 0);
 });
