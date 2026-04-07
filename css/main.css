@@ -355,9 +355,9 @@ button:active {
 
 .app-footer {
   text-align: center;
-  color: #786f64;
+  color: #3e3b36;
   font-family: "IBM Plex Mono", monospace;
-  font-size: 0.68rem;
+  font-size: 1 rem;
   letter-spacing: 0.03em;
   padding-top: 4px;
   border-top: 1px solid rgba(123, 106, 81, 0.12);
