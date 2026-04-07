@@ -1,25 +1,26 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
-    <title>Recursion Tree Visualizer</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Algorithm Visualizer</title>
     <link rel="stylesheet" href="css/main.css" />
   </head>
 
   <body>
     <div class="app">
       <header class="app-header">
-        <h1>Recursion Tree Visualizer</h1>
-        <p>Karatsuba & Max Subarray</p>
+        <h1>Algorithm Visualizer</h1>
+        <p>DAA | Divide and Conquer</p>
       </header>
 
       <main class="app-main">
         <section class="controls">
           <div class="control-row">
-            <label>Algorithm:</label>
+            <label>Algorithm</label>
             <select id="algorithmSelect">
               <option value="karatsuba">Karatsuba Multiplication</option>
-              <option value="maxSubarray">Max Subarray</option>
+              <option value="maxSubarray">Maximum Subarray</option>
             </select>
           </div>
 
@@ -27,10 +28,15 @@
 
           <div class="buttons-row">
             <button id="generateBtn">Generate Tree</button>
-            <button id="prevStepBtn">◀ Prev</button>
-            <button id="nextStepBtn">Next ▶</button>
+          </div>
+
+          <div class="buttons-row">
+            <button id="prevStepBtn">Previous</button>
+            <button id="nextStepBtn">Next</button>
             <button id="resetBtn">Reset</button>
           </div>
+
+          <div class="step-counter" id="stepCounter"></div>
 
           <div id="complexityBox" class="complexity-box"></div>
         </section>
@@ -42,9 +48,7 @@
         </section>
       </main>
 
-      <footer class="app-footer">
-        <small>DAA Project – Recursion Tree Visualizer</small>
-      </footer>
+      <footer class="app-footer">DAA Project | Algorithm Visualizer</footer>
     </div>
 
     <script src="js/algorithms.js"></script>
