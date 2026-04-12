@@ -4,15 +4,17 @@ let currentStepIndex = -1;
 
 function rerenderCurrentTree(svgElem) {
   if (!currentTree || !svgElem) return;
-
   const savedStepIndex = currentStepIndex;
   renderTree(currentTree, svgElem);
   updateStep(svgElem, savedStepIndex);
 }
 
-function layoutTree(tree, svgWidth, levelHeight) {
+function layoutTree(tree, levelHeight) {
   const NODE_R = 28;
-  const MIN_SIBLING_GAP = 20;
+  // Gap between siblings — wider to prevent label overlap
+  const MIN_SIBLING_GAP = 32;
+  // Estimate pixels per character for label width calculation
+  const CHAR_W = 8;
 
   const children = new Map();
   tree.nodes.forEach((node) => children.set(node.id, []));
@@ -20,19 +22,25 @@ function layoutTree(tree, svgWidth, levelHeight) {
 
   const root = tree.nodes.find((node) => node.depth === 0);
 
+  // Compute minimum width needed for a node based on its label length
+  function nodeWidth(id) {
+    const node = tree.nodes.find((n) => n.id === id);
+    const labelPx = node.label.length * CHAR_W + 16;
+    return Math.max(labelPx, NODE_R * 2);
+  }
+
   const subtreeWidth = new Map();
   function computeWidth(id) {
     const kids = children.get(id) || [];
     if (kids.length === 0) {
-      subtreeWidth.set(id, 2 * NODE_R);
+      subtreeWidth.set(id, nodeWidth(id));
       return;
     }
-
     kids.forEach(computeWidth);
     const total =
       kids.reduce((sum, kidId) => sum + subtreeWidth.get(kidId), 0) +
       (kids.length - 1) * MIN_SIBLING_GAP;
-    subtreeWidth.set(id, Math.max(total, 2 * NODE_R));
+    subtreeWidth.set(id, Math.max(total, nodeWidth(id)));
   }
   computeWidth(root.id);
 
@@ -53,9 +61,7 @@ function layoutTree(tree, svgWidth, levelHeight) {
     });
   }
 
-  const rootWidth = subtreeWidth.get(root.id);
-  const startX = Math.max(0, (svgWidth - rootWidth) / 2);
-  assignPos(root.id, startX, 0);
+  assignPos(root.id, 0, 0);
 
   const positionedNodes = new Map();
   tree.nodes.forEach((node) => {
@@ -108,42 +114,51 @@ function renderTree(tree, svgElem) {
 
   const NODE_R = 28;
   const LEVEL_HEIGHT = 142;
-  const PADDING = 44;
+  const PADDING = 60;
 
-  const containerW = svgElem.parentElement
-    ? svgElem.parentElement.clientWidth || 800
-    : 800;
-  const containerH = svgElem.parentElement
-    ? svgElem.parentElement.clientHeight || 620
-    : 620;
+  const wrapper = svgElem.parentElement;
+  const containerW = wrapper ? wrapper.clientWidth || 800 : 800;
+  const containerH = wrapper ? wrapper.clientHeight || 620 : 620;
 
-  const laidOut = layoutTree(
-    tree,
-    Math.max(containerW - PADDING * 2, 340),
-    LEVEL_HEIGHT,
-  );
-  const maxX = Math.max(...laidOut.nodes.map((node) => node.x)) + NODE_R + PADDING;
-  const maxDepth = Math.max(...laidOut.nodes.map((node) => node.depth));
-  const contentW = maxX + PADDING;
+  // Layout without any width constraint — let the tree dictate its own size
+  const laidOut = layoutTree(tree, LEVEL_HEIGHT);
+
+  // Measure true content bounds
+  const allX = laidOut.nodes.map((n) => n.x);
+  const minX = Math.min(...allX);
+  const maxX = Math.max(...allX);
+  const maxDepth = Math.max(...laidOut.nodes.map((n) => n.depth));
+
+  const contentW = maxX - minX + NODE_R * 2 + PADDING * 2;
   const contentH = 56 + (maxDepth + 1) * LEVEL_HEIGHT + 132;
 
-  const fitScale = Math.min(
-    (containerW - PADDING * 2) / contentW,
-    (containerH - PADDING * 2) / contentH,
-  );
-  const scale = Math.max(0.95, Math.min(2.4, fitScale));
-  const svgW = Math.max(containerW, Math.ceil(contentW * scale + PADDING * 2));
-  const svgH = Math.max(containerH, Math.ceil(contentH * scale + PADDING * 2));
-  const offsetX = Math.max(PADDING, (svgW - contentW * scale) / 2);
-  const offsetY = Math.max(PADDING * 0.75, (svgH - contentH * scale) / 2);
+  // Shift all nodes so the leftmost node has PADDING from the left
+  const shiftX = PADDING + NODE_R - minX;
+
+  // Scale to fit container if content is larger, but never scale up
+  const scaleX = (containerW - PADDING * 2) / contentW;
+  const scaleY = (containerH - PADDING * 2) / contentH;
+  const fitScale = Math.min(scaleX, scaleY);
+  const scale = Math.min(1.0, Math.max(0.38, fitScale));
+
+  const scaledW = Math.ceil(contentW * scale);
+  const scaledH = Math.ceil(contentH * scale);
+
+  // SVG is at least the container size; grows if content needs more room
+  const svgW = Math.max(containerW, scaledW + PADDING * 2);
+  const svgH = Math.max(containerH, scaledH + PADDING * 2);
+
+  // Center content inside the SVG
+  const offsetX = Math.max(PADDING, (svgW - scaledW) / 2);
+  const offsetY = Math.max(PADDING * 0.5, (svgH - scaledH) / 2);
 
   svgElem.setAttribute("viewBox", `0 0 ${svgW} ${svgH}`);
   svgElem.setAttribute("width", svgW);
   svgElem.setAttribute("height", svgH);
   svgElem.innerHTML = "";
 
+  // ── Defs ────────────────────────────────────────────────────
   const defs = document.createElementNS("http://www.w3.org/2000/svg", "defs");
-
   const marker = document.createElementNS(
     "http://www.w3.org/2000/svg",
     "marker",
@@ -154,7 +169,6 @@ function renderTree(tree, svgElem) {
   marker.setAttribute("refX", "5");
   marker.setAttribute("refY", "3.5");
   marker.setAttribute("orient", "auto-start-reverse");
-
   const arrowPath = document.createElementNS(
     "http://www.w3.org/2000/svg",
     "path",
@@ -165,6 +179,7 @@ function renderTree(tree, svgElem) {
   defs.appendChild(marker);
   svgElem.appendChild(defs);
 
+  // ── Scene group ─────────────────────────────────────────────
   const scene = document.createElementNS("http://www.w3.org/2000/svg", "g");
   scene.setAttribute(
     "transform",
@@ -172,9 +187,15 @@ function renderTree(tree, svgElem) {
   );
   svgElem.appendChild(scene);
 
+  // ── Edges ───────────────────────────────────────────────────
   laidOut.edges.forEach((edge, index) => {
-    const dx = edge.toPos.x - edge.fromPos.x;
-    const dy = edge.toPos.y - edge.fromPos.y;
+    const fx = edge.fromPos.x + shiftX;
+    const fy = edge.fromPos.y;
+    const tx = edge.toPos.x + shiftX;
+    const ty = edge.toPos.y;
+
+    const dx = tx - fx;
+    const dy = ty - fy;
     const dist = Math.sqrt(dx * dx + dy * dy) || 1;
     const nx = dx / dist;
     const ny = dy / dist;
@@ -182,24 +203,33 @@ function renderTree(tree, svgElem) {
     const line = document.createElementNS("http://www.w3.org/2000/svg", "line");
     line.classList.add("edge", "hidden-step");
     line.setAttribute("data-edge-index", index.toString());
-    line.setAttribute("x1", edge.fromPos.x + nx * NODE_R);
-    line.setAttribute("y1", edge.fromPos.y + ny * NODE_R);
-    line.setAttribute("x2", edge.toPos.x - nx * (NODE_R + 5));
-    line.setAttribute("y2", edge.toPos.y - ny * (NODE_R + 5));
+    line.setAttribute("x1", fx + nx * NODE_R);
+    line.setAttribute("y1", fy + ny * NODE_R);
+    line.setAttribute("x2", tx - nx * (NODE_R + 5));
+    line.setAttribute("y2", ty - ny * (NODE_R + 5));
     scene.appendChild(line);
   });
 
+  // ── Nodes ───────────────────────────────────────────────────
   laidOut.nodes.forEach((node) => {
+    const cx = node.x + shiftX;
+    const cy = node.y;
+
     const group = document.createElementNS("http://www.w3.org/2000/svg", "g");
-    group.setAttribute("transform", `translate(${node.x}, ${node.y})`);
+    group.setAttribute("transform", `translate(${cx}, ${cy})`);
     group.setAttribute("data-node-id", node.id);
     group.classList.add("hidden-step");
+
+    // Node radius — grow for longer labels
+    const labelChars = node.label.length;
+    const r =
+      labelChars > 8 ? Math.min(NODE_R + (labelChars - 8) * 2.5, 48) : NODE_R;
 
     const circle = document.createElementNS(
       "http://www.w3.org/2000/svg",
       "circle",
     );
-    circle.setAttribute("r", NODE_R);
+    circle.setAttribute("r", r);
     circle.classList.add("node");
 
     const label = document.createElementNS(
@@ -208,18 +238,26 @@ function renderTree(tree, svgElem) {
     );
     label.textContent = node.label;
     label.classList.add("node-label");
+    // Shrink font for long labels
+    if (labelChars > 10) {
+      label.setAttribute(
+        "font-size",
+        Math.max(10, 15 - (labelChars - 10) * 0.7),
+      );
+    }
 
     group.appendChild(circle);
     group.appendChild(label);
 
+    // Calc bubble
     const calcLines = getCalcLines(node);
     if (calcLines.length > 0) {
       const lineH = 16;
       const bubblePad = 9;
       const bubbleW =
-        Math.max(...calcLines.map((line) => line.length)) * 7.1 + bubblePad * 2;
+        Math.max(...calcLines.map((l) => l.length)) * 7.1 + bubblePad * 2;
       const bubbleH = calcLines.length * lineH + bubblePad * 2;
-      const bubbleY = NODE_R + 14;
+      const bubbleY = r + 14;
 
       const bubbleBg = document.createElementNS(
         "http://www.w3.org/2000/svg",
@@ -234,14 +272,14 @@ function renderTree(tree, svgElem) {
       bubbleBg.classList.add("calc-bg");
       group.appendChild(bubbleBg);
 
-      calcLines.forEach((line, index) => {
+      calcLines.forEach((line, i) => {
         const text = document.createElementNS(
           "http://www.w3.org/2000/svg",
           "text",
         );
         text.textContent = line;
         text.classList.add("calc-bubble");
-        text.setAttribute("y", bubbleY + bubblePad + lineH * index + lineH * 0.75);
+        text.setAttribute("y", bubbleY + bubblePad + lineH * i + lineH * 0.75);
         group.appendChild(text);
       });
     }
@@ -249,6 +287,7 @@ function renderTree(tree, svgElem) {
     scene.appendChild(group);
   });
 
+  // ── Step order (BFS) ────────────────────────────────────────
   const adjacency = new Map();
   laidOut.edges.forEach((edge) => {
     if (!adjacency.has(edge.from)) adjacency.set(edge.from, []);
@@ -275,7 +314,7 @@ function renderTree(tree, svgElem) {
   updateStep(svgElem, 0);
   updateStepCounter();
 
-  const wrapper = svgElem.parentElement;
+  // Scroll to centre of content
   if (wrapper) {
     wrapper.scrollLeft = Math.max(0, (svgW - wrapper.clientWidth) / 2);
     wrapper.scrollTop = 0;
@@ -290,6 +329,12 @@ function updateStep(svgElem, newIndex) {
 
   const visibleSet = new Set(stepOrder.slice(0, currentStepIndex + 1));
   const currentNodeId = stepOrder[currentStepIndex];
+
+  const currentNodeData =
+    currentTree.nodes.find((n) => n.id === currentNodeId) || null;
+  if (typeof window.onStepChanged === "function") {
+    window.onStepChanged(currentNodeData);
+  }
 
   svgElem.querySelectorAll("g[data-node-id]").forEach((group) => {
     const id = parseInt(group.getAttribute("data-node-id"), 10);

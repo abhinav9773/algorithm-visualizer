@@ -1,4 +1,4 @@
-// ================= KARATSUBA MULTIPLICATION =================
+// KARATSUBA MULTIPLICATION
 
 function buildKaratsubaTreeFromInput(x0, y0) {
   const nodes = [];
@@ -61,7 +61,7 @@ function buildKaratsubaTreeFromInput(x0, y0) {
   return { nodes, edges, finalResult };
 }
 
-// ================= MAXIMUM SUBARRAY =================
+// MAXIMUM SUBARRAY
 
 function buildMaxSubarrayTreeFromInput(arr) {
   const nodes = [];

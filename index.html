@@ -16,12 +16,33 @@
 
       <main class="app-main">
         <section class="controls">
+          <!-- Algorithm Picker -->
           <div class="control-row">
             <label>Algorithm</label>
-            <select id="algorithmSelect">
-              <option value="karatsuba">Karatsuba Multiplication</option>
-              <option value="maxSubarray">Maximum Subarray</option>
-            </select>
+            <div class="algo-picker" id="algorithmPicker">
+              <div class="algo-card selected" data-value="karatsuba">
+                <div class="algo-icon algo-icon--k">✕</div>
+                <div class="algo-meta">
+                  <div class="algo-name">Karatsuba Multiplication</div>
+                  <!-- <div class="algo-sub">O(n^1.585) · Divide &amp; Conquer</div> -->
+                </div>
+                <!-- <span class="algo-badge algo-badge--k">3 subproblems</span> -->
+                <div class="algo-check">
+                  <div class="algo-check-inner"></div>
+                </div>
+              </div>
+              <div class="algo-card" data-value="maxSubarray">
+                <div class="algo-icon algo-icon--m">▦</div>
+                <div class="algo-meta">
+                  <div class="algo-name">Maximum Subarray</div>
+                  <!-- <div class="algo-sub">O(n log n) · Divide &amp; Conquer</div> -->
+                </div>
+                <!-- <span class="algo-badge algo-badge--m">cross + halves</span> -->
+                <div class="algo-check">
+                  <div class="algo-check-inner"></div>
+                </div>
+              </div>
+            </div>
           </div>
 
           <div id="inputBox" class="control-row"></div>
@@ -38,6 +59,16 @@
 
           <div class="step-counter" id="stepCounter"></div>
 
+          <!-- Step Calculation Info Box -->
+          <div class="step-info-box empty" id="stepInfoBox">
+            <span>Generate a tree to see step details</span>
+          </div>
+
+          <!-- View Code Button -->
+          <div class="buttons-row">
+            <button id="codeBtn">View Code / Pseudocode</button>
+          </div>
+
           <div id="complexityBox" class="complexity-box"></div>
         </section>
 
@@ -51,6 +82,24 @@
       <footer class="app-footer">
         <div>--Made by Aayan and Abhinav</div>
       </footer>
+    </div>
+
+    <!-- Code / Pseudocode Modal -->
+    <div class="modal-overlay" id="codeModal">
+      <div class="modal-box">
+        <div class="modal-header">
+          <h2 id="modalTitle">Karatsuba Multiplication</h2>
+          <div class="modal-tabs">
+            <button class="modal-tab active" data-tab="pseudo">
+              Pseudocode
+            </button>
+            <button class="modal-tab" data-tab="java">Java</button>
+            <button class="modal-tab" data-tab="cpp">C++</button>
+          </div>
+          <button class="modal-close" id="closeModal">✕ Close</button>
+        </div>
+        <div class="modal-body" id="modalBody"></div>
+      </div>
     </div>
 
     <script src="js/algorithms.js"></script>
